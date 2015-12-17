@@ -1,57 +1,92 @@
 import React, { Component, PropTypes } from "react";
 
+function getImageArray(props) {
+	const { src, fallbackImage } = props;
+	const source = Array.isArray(src) ? src : [src];
+	return source.concat(fallbackImage).filter(x => !!x);
+}
+
 class ReactImageFallback extends Component {
 	constructor(props) {
 		super(props);
 		this.displayImage = new Image();
 		this.state = {
-			imageSource: props.initialImage
+			imageSource: props.initialImage,
+			imageArray: getImageArray(props),
+			imageIndex: -1,
+			hasInitial: !!props.initialImage
 		};
 		this.setDisplayImage = this.setDisplayImage.bind(this);
 	}
 
 	componentDidMount() {
-		this.setDisplayImage(this.props.src, this.props.fallbackImage);
+		this.setDisplayImage();
 	}
 
-	componentWillReceiveProps(nextProps) {
-		if (nextProps.src !== this.props.src){
-			this.setDisplayImage(nextProps.src, nextProps.fallbackImage);
-		}
-	}
+// 	componentWillReceiveProps(nextProps) {
+// 		// if (nextProps.src !== this.props.src) {
+// 		// 	this.setState({
+// 		// 		imageIndex: 0,
+// 		// 		imageArray: getImageArray(nextProps)
+// 		// 	}, this.setDisplayImage);
+// 		// }
+// 	}
 
 	componentWillUnmount() {
 		this.displayImage.onerror = null;
 		this.displayImage.onload = null;
 	}
 
-	setDisplayImage(image, fallback) {
+	setDisplayImageSrc() {
+		this.displayImage.src = this.state.imageSource;
+	}
+
+	setDisplayImage() {
 		this.displayImage.onerror = () => {
+			const { imageArray, imageIndex } = this.state;
+			const nextIndex = imageIndex + 1;
+			const callback = imageIndex < imageArray.length && this.setDisplayImageSrc
 			this.setState({
-				imageSource: fallback
-			});
+				imageSource: imageArray[nextIndex],
+				imageIndex: nextIndex,
+				broken: true
+			}, callback);
 		};
+
 		this.displayImage.onload = () => {
+			const { imageArray, imageIndex, hasInitial } = this.state;
+			const callback = hasInitial && this.setDisplayImageSrc
 			this.setState({
-				imageSource: image
-			});
+				imageSource: imageArray[imageIndex],
+				hasInitial: false,
+				broken: false
+			}, callback);
 		};
-		this.displayImage.src = image;
+
+		this.setDisplayImageSrc();
 	}
 
 	render() {
-		return this.state.imageSource ? <img {...this.props} src={this.state.imageSource} /> : null;
+		const { imageSource, broken, hasInitial } = this.state;
+		return imageSource ? <img {...this.props} src={broken ? this.props.initialImage : imageSource} /> : null;
 	}
 }
 ReactImageFallback.displayName = "ReactImageFallback";
 
 ReactImageFallback.propTypes = {
-	src: PropTypes.string.isRequired,
-	fallbackImage: PropTypes.string.isRequired,
+	src: PropTypes.oneOfType([
+		PropTypes.arrayOf(PropTypes.string),
+		PropTypes.string
+	]).isRequired,
+	fallbackImage: PropTypes.oneOfType([
+		PropTypes.arrayOf(PropTypes.string),
+		PropTypes.string
+	]),
 	initialImage: PropTypes.string
 };
 
 ReactImageFallback.defaultProps = {
+	fallbackImage: null,
 	initialImage: null
 };
 

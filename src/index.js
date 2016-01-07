@@ -23,14 +23,17 @@ class ReactImageFallback extends Component {
 		this.setDisplayImage();
 	}
 
-// 	componentWillReceiveProps(nextProps) {
-// 		// if (nextProps.src !== this.props.src) {
-// 		// 	this.setState({
-// 		// 		imageIndex: 0,
-// 		// 		imageArray: getImageArray(nextProps)
-// 		// 	}, this.setDisplayImage);
-// 		// }
-// 	}
+  componentWillReceiveProps(nextProps) {
+    const { imageSource, imageArray } = this.state;
+    const nextArray = getImageArray(nextProps);
+    if (!imageArray.every((image, index) => nextArray[index] === image))
+      this.setState({
+        imageSource: nextProps.initialImage,
+        imageArray: nextArray,
+        imageIndex: -1,
+        hasInitial: !!nextProps.initialImage
+      }, this.setDisplayImage);
+  }
 
 	componentWillUnmount() {
 		this.displayImage.onerror = null;
